@@ -15,4 +15,4 @@ add_library(minsh_lib
 target_include_directories(minsh_lib PUBLIC include)
 
 add_executable(minsh src/main.cpp)
-target_link_libraries(minsh PRIVATE minsh_lib)
+target_link_libraries(minsh PRIVATE minsh_lib readline)

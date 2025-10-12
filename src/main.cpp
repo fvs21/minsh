@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "minsh/tokenizer.hpp"
 #include "minsh/parser.hpp"
@@ -19,10 +21,22 @@
     }
 }
 
+static std::string get_prompt(std::string username, char cwd[1024]) {
+    std::string cwd_str(cwd);
+
+    std::string prompt = "\033[2;37m" + username + "\033[0m ";
+    prompt.append("\033[34m" + cwd_str + "\033[0m\n");
+    prompt.append("minsh$ ");
+
+    return prompt;
+}
+
 int main() {
     std::string line;
     char* username = getlogin();
     char cwd[1024];
+
+    rl_bind_key('\t', rl_complete);
 
     if (username == NULL) {
         perror("login");
@@ -32,18 +46,19 @@ int main() {
     while (true) {
         if (getcwd(cwd, sizeof(cwd)) == NULL)
             perror("error");
+
+        std::string prompt = get_prompt(username, cwd);
+        line = readline(prompt.c_str());
         
-        std::cout << "\033[2;37m" << username << "\033[0m" << ' ';
-        std::cout << "\033[34m" << cwd << "\033[0m" << '\n';
-        std::cout << "minsh$ " << std::flush;
-        
-        if (!std::getline(std::cin, line)) {
+        if (!line.c_str()) {
             std::cout << "\nbye\n";
             break;
         }
 
         if (line.empty())
             continue;
+
+        add_history(line.c_str());
 
         std::vector<minsh::Token> tokens = minsh::tokenize(line);
 
@@ -57,8 +72,6 @@ int main() {
 
         if (!result.pipeline.has_value())
             continue;
-
-        //print_pipeline(result.pipeline.value());
 
         minsh::Executor executor;
         executor.execute(result.pipeline.value());
