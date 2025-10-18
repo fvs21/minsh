@@ -9,17 +9,42 @@
 
 namespace minsh {
     void Executor::execute(const Pipeline& pipeline) {
-        for (size_t i = 0; i < pipeline.stages.size(); ++i) {
+        size_t num_stages = pipeline.stages.size();
+
+        int pipe_fds[2];
+        int input_fd = STDIN_FILENO;
+        int output_fd;
+
+        for (size_t i = 0; i < num_stages; ++i) {
             Command cmd = pipeline.stages[i];
+
+            if (pipe(pipe_fds) < 0) {
+                perror("pipe");
+                exit(1);
+            }
+
+            if (i == num_stages - 1)
+                output_fd = STDOUT_FILENO;
+            else
+                output_fd = pipe_fds[1];
+
+            int fds[] = { input_fd, output_fd };
             
             if (cmd.is_builtin)
                 execute_builtin(cmd);
             else
-                execute_command(cmd);
+                execute_command(cmd, fds);
+
+            close(pipe_fds[1]);
+            if (i != STDIN_FILENO) close(input_fd);
+
+            input_fd = pipe_fds[0];
         }
+
+        close(input_fd);
     }
 
-    void Executor::execute_command(const Command& cmd) {        
+    void Executor::execute_command(const Command& cmd, int fds[2]) {        
         pid_t process_id = fork();
 
         if (process_id < 0) {
@@ -28,6 +53,8 @@ namespace minsh {
         }
 
         if (process_id == 0) {
+            handle_pipes(fds);
+
             if (cmd.redir.is_redir)
                 handle_redirection(cmd.redir);
             
@@ -48,6 +75,18 @@ namespace minsh {
 
         } else {
             wait(NULL);
+        }
+    }
+
+    void Executor::handle_pipes(int fds[2]) {
+        if (fds[0] != 0) {
+            dup2(fds[0], STDIN_FILENO);
+            close(fds[0]);
+        }
+
+        if (fds[1] != 1) {
+            dup2(fds[1], STDOUT_FILENO);
+            close(fds[1]);
         }
     }
 
