@@ -31,6 +31,17 @@ static std::string get_prompt(std::string username, char cwd[1024]) {
     return prompt;
 }
 
+[[maybe_unused]] static void print_vector(const std::vector<minsh::Token>& vec) {
+    std::cout << "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i].value;
+        if (i < vec.size() - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
+}
+
 int main() {
     std::string line;
     char* username = getlogin();

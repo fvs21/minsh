@@ -17,5 +17,8 @@ namespace minsh {
         std::string value;
     };
     
-    std::vector<Token> tokenize(const std::string& line);
+    std::vector<Token> tokenize(std::string& line);
+
+    inline void ltrim(std::string &s);
+    inline void rtrim(std::string &s);
 }

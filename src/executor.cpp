@@ -30,10 +30,7 @@ namespace minsh {
 
             int fds[] = { input_fd, output_fd };
             
-            if (cmd.is_builtin)
-                execute_builtin(cmd);
-            else
-                execute_command(cmd, fds);
+            execute_command(cmd, fds);
 
             close(pipe_fds[1]);
             if (i != STDIN_FILENO) close(input_fd);
@@ -58,19 +55,25 @@ namespace minsh {
             if (cmd.redir.is_redir)
                 handle_redirection(cmd.redir);
             
-            std::vector<char*> argv;
-
-            for (const auto& arg : cmd.argv) {
-                argv.push_back(const_cast<char*>(arg.value.c_str()));
+            if (cmd.is_builtin) {
+                run_builtin(cmd.argv);
+                exit(0);
             }
+            else {
+                std::vector<char*> argv;
 
-            argv.push_back(nullptr);
+                for (const auto& arg : cmd.argv) {
+                    argv.push_back(const_cast<char*>(arg.value.c_str()));
+                }
 
-            int status = execvp(argv[0], argv.data());
+                argv.push_back(nullptr);
 
-            if (status < 0) {
-                perror(argv[0]);
-                exit(1);
+                int status = execvp(argv[0], argv.data());
+
+                if (status < 0) {
+                    perror(argv[0]);
+                    exit(1);
+                }
             }
 
         } else {
@@ -114,9 +117,5 @@ namespace minsh {
             dup2(fd, STDOUT_FILENO);
             close(fd);
         }
-    }
-
-    void Executor::execute_builtin(const Command& cmd) {
-        run_builtin(cmd.argv);
     }
 }
