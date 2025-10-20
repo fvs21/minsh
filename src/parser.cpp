@@ -2,6 +2,7 @@
 #include "minsh/tokenizer.hpp"
 #include "minsh/ast.hpp"
 #include "minsh/builtins.hpp"
+#include "minsh/variables.hpp"
 
 #include <iostream>
 #include <vector>
@@ -26,6 +27,15 @@ namespace minsh {
                     if (is_builtin(token.value))
                         command.is_builtin = true;
                 }
+            }
+            else if (token.type == TokenType::Variable) {
+                std::string variable_name = token.value.substr(1, token.value.size() - 1);
+
+                std::string variable_value = get_variable_value(variable_name);
+                token.value = variable_value;
+                token.type = TokenType::Word;
+
+                command.argv.push_back(token);
             }
             else if (token.type == TokenType::Pipe) {
                 if (current_pos > 0 && tokens[current_pos - 1].type != TokenType::Pipe) {

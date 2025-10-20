@@ -25,6 +25,8 @@ namespace minsh {
             return TokenType::RedirectAppend;
         else if (token.compare("<") == 0)
             return TokenType::RedirectIn;
+        else if (token[0] == '$')
+            return TokenType::Variable; 
         
         return TokenType::Word;
     }

@@ -9,10 +9,11 @@
 #include "minsh/parser.hpp"
 #include "minsh/ast.hpp"
 #include "minsh/executor.hpp"
+#include "minsh/variables.hpp"
 
 [[maybe_unused]] static void print_pipeline(const minsh::Pipeline& pipeline) {
     for (const minsh::Command& cmd : pipeline.stages) {
-        for(const minsh::Token& token : cmd.argv)
+        for (const minsh::Token& token : cmd.argv)
             std::cout << token.value << " ";
         std::cout << '\n';
         
@@ -53,6 +54,8 @@ int main() {
         perror("login");
         exit(1);
     }
+
+    minsh::add_variable("USER", username);
 
     while (true) {
         if (getcwd(cwd, sizeof(cwd)) == NULL)

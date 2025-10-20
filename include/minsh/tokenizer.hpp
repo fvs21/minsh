@@ -9,7 +9,8 @@ namespace minsh {
         Pipe,
         RedirectIn,
         RedirectOut,
-        RedirectAppend
+        RedirectAppend,
+        Variable
     };
 
     struct Token {

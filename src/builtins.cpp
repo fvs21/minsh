@@ -11,27 +11,18 @@ namespace minsh {
         auto it_found = builtins.find(command_name);
 
         if (it_found != builtins.end())
-            it_found->second(argv);
+            return it_found->second(argv);
 
         return 0;
     }
 
-    void run_clear([[maybe_unused]] const std::vector<Token>& argv) {
+    int run_clear([[maybe_unused]] const std::vector<Token>& argv) {
         std::cout << "\033[2J\033[H" << std::flush;
+
+        return 0;
     }
 
-    void run_pwd([[maybe_unused]] const std::vector<Token>& argv) {
-        char buffer[1024];
-
-        if (getcwd(buffer, sizeof(buffer)) == NULL) {
-            perror("getcwd");
-            return;
-        }
-
-        std::cout << buffer << '\n';
-    }
-
-    void run_cd(const std::vector<Token>& argv) {
+    int run_cd(const std::vector<Token>& argv) {
         std::string path;
         char* home_dir = getenv("HOME");
 
@@ -46,7 +37,49 @@ namespace minsh {
                 path.replace(pos, 1, home_dir);
         }
 
-        if (chdir(path.c_str()) != 0)
+        if (chdir(path.c_str()) != 0) {
             perror("cd");
+            return 1;
+        }
+
+        return 0;
+    }
+
+    static inline std::optional<std::pair<std::string, std::string>> parse_key_value_pair(std::string str) {
+        size_t length = str.size();
+        size_t pos = str.find("=", 0);
+
+        if (pos == std::string::npos)
+            return std::nullopt;
+        
+        std::string key = str.substr(0, pos);
+        std::string val = str.substr(pos + 1, length - pos);
+
+        return std::make_pair(key, val);
+    } 
+
+    int run_export(const std::vector<Token>& argv) {
+        if (argv.size() == 1) {
+            for (const auto& [key, val] : get_minsh_variables())
+                std::cout << key << '=' << val << '\n';
+
+            return 0;
+        }
+
+        else {
+            std::string key_val = argv[1].value;
+            std::optional<std::pair<std::string, std::string>> pair = parse_key_value_pair(key_val);
+
+            if (!pair.has_value()) {
+                std::cout << "minsh: bad assignment" << '\n';
+                return 1;
+            }
+
+            auto [key, value] = pair.value();
+
+            add_variable(key, value);
+
+            return 0;
+        }
     }
 }

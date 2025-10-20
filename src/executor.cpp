@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <iostream>
 
-
 namespace minsh {
     void Executor::execute(const Pipeline& pipeline) {
         size_t num_stages = pipeline.stages.size();
@@ -17,6 +16,11 @@ namespace minsh {
 
         for (size_t i = 0; i < num_stages; ++i) {
             Command cmd = pipeline.stages[i];
+
+            if (cmd.is_builtin) {
+                run_builtin(cmd.argv);
+                continue;
+            }
 
             if (pipe(pipe_fds) < 0) {
                 perror("pipe");
@@ -38,7 +42,7 @@ namespace minsh {
             input_fd = pipe_fds[0];
         }
 
-        close(input_fd);
+        if (input_fd != STDIN_FILENO) close(input_fd);
     }
 
     void Executor::execute_command(const Command& cmd, int fds[2]) {        
@@ -55,25 +59,20 @@ namespace minsh {
             if (cmd.redir.is_redir)
                 handle_redirection(cmd.redir);
             
-            if (cmd.is_builtin) {
-                run_builtin(cmd.argv);
-                exit(0);
+
+            std::vector<char*> argv;
+
+            for (const auto& arg : cmd.argv) {
+                argv.push_back(const_cast<char*>(arg.value.c_str()));
             }
-            else {
-                std::vector<char*> argv;
 
-                for (const auto& arg : cmd.argv) {
-                    argv.push_back(const_cast<char*>(arg.value.c_str()));
-                }
+            argv.push_back(nullptr);
 
-                argv.push_back(nullptr);
+            int status = execvp(argv[0], argv.data());
 
-                int status = execvp(argv[0], argv.data());
-
-                if (status < 0) {
-                    perror(argv[0]);
-                    exit(1);
-                }
+            if (status < 0) {
+                perror(argv[0]);
+                exit(1);
             }
 
         } else {
