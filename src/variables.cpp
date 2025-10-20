@@ -1,6 +1,6 @@
 #include "minsh/variables.hpp" 
 
-#include "stdlib.h"
+#include <stdlib.h>
 
 namespace minsh {
     std::map<std::string, std::string>& get_minsh_variables() {
